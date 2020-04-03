@@ -111,17 +111,17 @@ class StereoCalibration(object):
 
     def stereo_calibrate(self, dims):
         flags = 0
-        flags |= cv2.CALIB_FIX_INTRINSIC
+        # flags |= cv2.CALIB_FIX_INTRINSIC
         #flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
         flags |= cv2.CALIB_USE_INTRINSIC_GUESS
         flags |= cv2.CALIB_FIX_FOCAL_LENGTH
-        # flags |= cv2.CALIB_FIX_ASPECT_RATIO
+        flags |= cv2.CALIB_FIX_ASPECT_RATIO
         flags |= cv2.CALIB_ZERO_TANGENT_DIST
-        # flags |= cv2.CALIB_RATIONAL_MODEL
+        flags |= cv2.CALIB_RATIONAL_MODEL
         # flags |= cv2.CALIB_SAME_FOCAL_LENGTH
-        # flags |= cv2.CALIB_FIX_K3
-        # flags |= cv2.CALIB_FIX_K4
-        # flags |= cv2.CALIB_FIX_K5
+        flags |= cv2.CALIB_FIX_K3
+        flags |= cv2.CALIB_FIX_K4
+        flags |= cv2.CALIB_FIX_K5
 
         stereocalib_criteria = (cv2.TERM_CRITERIA_MAX_ITER +
                                 cv2.TERM_CRITERIA_EPS, 100, 1e-5)
@@ -267,71 +267,93 @@ if __name__ == '__main__':
     # _extrinsic_generator.save("extrinsic.yml")
 
     stereo_manager =  StereoManager(cal_data.getModelCamera())
-    
-    filenameimageL = "/media/ebenezerpdi/EBBACKUP/JELAMBRAR/images_3d/DUAL_MATT_IMAGES/left/left_00.png"
-    imageL = cv2.imread(filenameimageL, 1)
 
-    filenameimageR = "/media/ebenezerpdi/EBBACKUP/JELAMBRAR/images_3d/DUAL_MATT_IMAGES/right/right_00.png"
-    imageR = cv2.imread(filenameimageR, 1)
+    # filenameimageL = "/media/ebenezerpdi/EBBACKUP/JELAMBRAR/images_3d/DUAL_MATT_IMAGES/left/left_00.png"
+    # imageL = cv2.imread(filenameimageL, 1)
 
-    outL, outR = stereo_manager.calc_stereo(imageL, imageR)
-    
-    cv2.imshow("imageL", outL)
-    cv2.imshow("imageR", outR)
+    # filenameimageR = "/media/ebenezerpdi/EBBACKUP/JELAMBRAR/images_3d/DUAL_MATT_IMAGES/right/right_00.png"
+    # imageR = cv2.imread(filenameimageR, 1)
 
-    cv2.imshow("Original Image L", imageL)
+    cal_path= args.filepath
 
-    """"
-    based by: http://timosam.com/python_opencv_depthimage
-    """
+    cal_path = args.filepath
+    images_right = glob.glob(cal_path + '/right/*.png')
+    images_left = glob.glob(cal_path + '/left/*.png')
+    images_left.sort()
+    images_right.sort()
 
-    imgL = imageL
-    imgR = imageR
+    # print(images_right)
+    # print(images_left)
 
-    # SGBM Parameters -----------------
-    window_size = 3                     # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
-     
-    left_matcher = cv2.StereoSGBM_create(
-        minDisparity=0,
-        numDisparities=160,             # max_disp has to be dividable by 16 f. E. HH 192, 256
-        blockSize=5,
-        P1=8 * 3 * window_size ** 2,    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
-        P2=32 * 3 * window_size ** 2,
-        disp12MaxDiff=1,
-        uniquenessRatio=15,
-        speckleWindowSize=0,
-        speckleRange=2,
-        preFilterCap=63,
-        mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
-    )
+    for i, fname in enumerate(images_right):
 
-    right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
+        print('reding images: ')
+        print(images_left[i])
+        print(images_right[i])
+        print()
+
+        img_l = cv2.imread(images_left[i])
+        img_r = cv2.imread(images_right[i])
+
+        outL, outR = stereo_manager.calc_stereo(img_l, img_r)
+
+        cv2.imshow("imageL", outL)
+        cv2.imshow("imageR", outR)
+
+        cv2.imshow("Original Image L", img_l)
+
+        """"
+        based by: http://timosam.com/python_opencv_depthimage
+        """
+
+        imgL = img_l
+        imgR = img_r
+
+        # SGBM Parameters -----------------
+        window_size = 3                     # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
+
+        left_matcher = cv2.StereoSGBM_create(
+            minDisparity=0,
+            numDisparities=16,             # max_disp has to be dividable by 16 f. E. HH 192, 256
+            blockSize=5,
+            P1=8 * 3 * window_size ** 2,    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
+            P2=32 * 3 * window_size ** 2,
+            disp12MaxDiff=1,
+            uniquenessRatio=15,
+            speckleWindowSize=0,
+            speckleRange=2,
+            preFilterCap=63,
+            mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
+        )
+
+        right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
 
 
-    # FILTER Parameters
-    lmbda = 80000
-    sigma = 1.2
-    visual_multiplier = 1.0
-     
-    wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
-    wls_filter.setLambda(lmbda)
-    wls_filter.setSigmaColor(sigma)
+        # FILTER Parameters
+        lmbda = 80000
+        sigma = 1.2
+        visual_multiplier = 1.0
+         
+        wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
+        wls_filter.setLambda(lmbda)
+        wls_filter.setSigmaColor(sigma)
 
 
-    print('computing disparity...')
-    displ = left_matcher.compute(imgL, imgR)  # .astype(np.float32)/16
-    dispr = right_matcher.compute(imgR, imgL)  # .astype(np.float32)/16
-    displ = np.int16(displ)
-    dispr = np.int16(dispr)
-    filteredImg = wls_filter.filter(displ, imgL, None, dispr)  # important to put "imgL" here!!!
+        print('computing disparity...')
+        displ = left_matcher.compute(imgL, imgR)  # .astype(np.float32)/16
+        dispr = right_matcher.compute(imgR, imgL)  # .astype(np.float32)/16
+        displ = np.int16(displ)
+        dispr = np.int16(dispr)
+        filteredImg = wls_filter.filter(displ, imgL, None, dispr)  # important to put "imgL" here!!!
 
-    cv2.imshow('Disparity Map', filteredImg)
+        cv2.imshow('Disparity Map', filteredImg)
 
-    filteredImg = cv2.normalize(src=filteredImg, dst=filteredImg, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX);
-    filteredImg = np.uint8(filteredImg)
-    cv2.imshow('Disparity Map', filteredImg)
+        filteredImg = cv2.normalize(src=filteredImg, dst=filteredImg, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX);
+        filteredImg = np.uint8(filteredImg)
+        cv2.imshow('Disparity Map', filteredImg)
 
-    cv2.waitKey()
+        cv2.waitKey()
+
     cv2.destroyAllWindows()
     print("FINAL")
 

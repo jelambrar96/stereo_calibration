@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # SGBM Parameters -----------------
     window_size = 3                     # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
 
-    """
+
     # ORIGINAL INTERNET
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
@@ -38,8 +38,8 @@ if __name__ == '__main__':
         mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
     )
     right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
-    """
 
+    """
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
         # max_disp has to be dividable by 16 f. E. HH 192, 256
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
     )
     right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
-
+    """
 
     # FILTER Parameters
     lmbda = 80000
@@ -104,6 +104,10 @@ if __name__ == '__main__':
         dispr = right_matcher.compute(imgR, imgL)  # .astype(np.float32)/16
         displ = np.int16(displ)
         dispr = np.int16(dispr)
+        
+        cv2.imshow("displ", displ)
+        cv2.imshow("dispr", dispr)
+        
         filteredImg = wls_filter.filter(displ, imgL, None, dispr)  # important to put "imgL" here!!!
 
         cv2.imshow('Disparity Map', filteredImg)
